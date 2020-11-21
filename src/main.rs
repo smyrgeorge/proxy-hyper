@@ -16,7 +16,7 @@ mod conf;
 use conf::Conf;
 
 mod error;
-use error::{ReverseProxyError, ServerError};
+use error::ServerError;
 
 mod proxy;
 use proxy::ReverseProxy;
@@ -26,18 +26,17 @@ use proxy::ReverseProxy;
 // TODO: tests
 
 #[tokio::main]
-async fn main() {
-    //TODO: remove unwrap()
-    let conf = Conf::new().unwrap();
+async fn main() -> Result<(), ServerError> {
+    let conf = Conf::new()?;
     let _log = conf.log();
 
-    let addr = conf.server_addr().unwrap();
+    let addr = conf.server_addr()?;
     let proxy: Arc<ReverseProxy> = make_reverse_proxy(conf.proxy);
 
     let make_svc = make_service_fn(move |_| {
         let proxy = proxy.clone();
         async {
-            Ok::<_, ReverseProxyError>(service_fn(move |req| {
+            Ok::<_, ServerError>(service_fn(move |req| {
                 let proxy = proxy.clone();
                 async move { proxy.handle(req).await }
             }))
@@ -51,6 +50,8 @@ async fn main() {
         error!("{}", e);
         std::process::abort();
     }
+
+    Ok(())
 }
 
 fn make_reverse_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {

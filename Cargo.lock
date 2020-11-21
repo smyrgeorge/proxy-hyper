@@ -786,11 +786,13 @@ dependencies = [
  "config",
  "hyper",
  "hyper-tls",
+ "lazy_static",
  "log",
  "log4rs",
  "serde 1.0.117",
  "serde_derive",
  "tokio",
+ "unicase",
 ]
 
 [[package]]
@@ -1230,6 +1232,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "653be63c80a3296da5551e1bfd2cca35227e13cdd08c6668903ae2f4f77aa1f6"
 dependencies = [
  "unsafe-any",
+]
+
+[[package]]
+name = "unicase"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50f37be617794602aabbeee0be4f259dc1778fabe05e2d67ee8f79326d5cb4f6"
+dependencies = [
+ "version_check",
 ]
 
 [[package]]

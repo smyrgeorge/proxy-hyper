@@ -3,6 +3,14 @@ pub enum ServerError {
     ConfigError(config::ConfigError),
     AddrParseError(String),
     Log4rsError(log4rs::Error),
+    Hyper(hyper::Error),
+    HyperHttp(hyper::http::Error),
+}
+
+impl std::fmt::Display for ServerError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmt, "{:?}", self)
+    }
 }
 
 impl From<log4rs::Error> for ServerError {
@@ -25,28 +33,16 @@ impl From<std::net::AddrParseError> for ServerError {
     }
 }
 
-#[derive(Debug)]
-pub enum ReverseProxyError {
-    Hyper(hyper::Error),
-    HyperHttp(hyper::http::Error),
-}
-
-impl From<hyper::Error> for ReverseProxyError {
+impl From<hyper::Error> for ServerError {
     fn from(e: hyper::Error) -> Self {
-        ReverseProxyError::Hyper(e)
+        ServerError::Hyper(e)
     }
 }
 
-impl From<hyper::http::Error> for ReverseProxyError {
+impl From<hyper::http::Error> for ServerError {
     fn from(e: hyper::http::Error) -> Self {
-        ReverseProxyError::HyperHttp(e)
+        ServerError::HyperHttp(e)
     }
 }
 
-impl std::fmt::Display for ReverseProxyError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "{:?}", self)
-    }
-}
-
-impl std::error::Error for ReverseProxyError {}
+impl std::error::Error for ServerError {}
