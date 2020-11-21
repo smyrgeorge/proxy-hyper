@@ -4,57 +4,57 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-use futures::future::Future;
-use hyper::server::conn::AddrStream;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::HeaderMap;
-use hyper::{Body, Request, Server};
-use log::{debug, error, info};
+use hyper::{
+    service::{make_service_fn, service_fn},
+    Client, Server,
+};
+use hyper_tls::HttpsConnector;
+use log::{error, info};
+use std::sync::Arc;
 
 mod conf;
 use conf::Conf;
 
 mod error;
-use error::ServerError;
+use error::{ReverseProxyError, ServerError};
+
+mod proxy;
+use proxy::ReverseProxy;
 
 // TODO: keycloak
 // TODO: documentation
 // TODO: tests
-// TODO: uograde hyper_reverse_copy
 
-fn main() -> Result<(), ServerError> {
-    let conf = Conf::new()?;
-    let _log = conf.log()?;
+#[tokio::main]
+async fn main() {
+    //TODO: remove unwrap()
+    let conf = Conf::new().unwrap();
+    let _log = conf.log();
 
-    let addr = conf.server_addr()?;
+    let addr = conf.server_addr().unwrap();
+    let proxy: Arc<ReverseProxy> = make_reverse_proxy(conf.proxy);
 
-    // A `Service` is needed for every connection.
-    let make_svc = make_service_fn(|socket: &AddrStream| {
-        let remote_addr = socket.remote_addr();
-
-        service_fn(move |mut req: Request<Body>| {
-            debug!("{:?}", req);
-
-            let req_headers = req.headers_mut();
-            user_header_of(req_headers);
-
-            // forward req to 3000 port (simple http-echo-server).
-            return hyper_reverse_proxy::call(remote_addr.ip(), "http://localhost:3000", req);
-        })
+    let make_svc = make_service_fn(move |_| {
+        let proxy = proxy.clone();
+        async {
+            Ok::<_, ReverseProxyError>(service_fn(move |req| {
+                let proxy = proxy.clone();
+                async move { proxy.handle(req).await }
+            }))
+        }
     });
 
-    let server = Server::bind(&addr)
-        .serve(make_svc)
-        .map_err(|e| error!("{}", e));
-
+    let server = Server::bind(&addr).serve(make_svc);
     info!("Server::{}", addr);
 
-    // Run this server for... forever!
-    hyper::rt::run(server);
-
-    Ok(())
+    if let Err(e) = server.await {
+        error!("{}", e);
+        std::process::abort();
+    }
 }
 
-fn user_header_of(req_heders: &mut HeaderMap) {
-    req_heders.append("x-real-name", "blah blah".parse().unwrap());
+fn make_reverse_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {
+    let https = HttpsConnector::new();
+    let client = Client::builder().build(https);
+    Arc::new(ReverseProxy { client, conf })
 }

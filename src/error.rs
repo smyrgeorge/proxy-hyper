@@ -24,3 +24,29 @@ impl From<std::net::AddrParseError> for ServerError {
         )
     }
 }
+
+#[derive(Debug)]
+pub enum ReverseProxyError {
+    Hyper(hyper::Error),
+    HyperHttp(hyper::http::Error),
+}
+
+impl From<hyper::Error> for ReverseProxyError {
+    fn from(e: hyper::Error) -> Self {
+        ReverseProxyError::Hyper(e)
+    }
+}
+
+impl From<hyper::http::Error> for ReverseProxyError {
+    fn from(e: hyper::http::Error) -> Self {
+        ReverseProxyError::HyperHttp(e)
+    }
+}
+
+impl std::fmt::Display for ReverseProxyError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmt, "{:?}", self)
+    }
+}
+
+impl std::error::Error for ReverseProxyError {}
