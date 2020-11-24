@@ -48,10 +48,10 @@ async fn main() -> Result<(), ServerError> {
     // Parse command line arguments.
     let opts: Opts = Opts::parse();
 
-    //Load config, and log4rs (logger).
+    // Load log4rs (logger).
     Conf::log(&opts.log_file)?;
 
-    // Load config, and log4rs (logger).
+    // Load config.
     let conf = Conf::new(&opts.config_file)?;
     debug!("{:?}", conf);
 
