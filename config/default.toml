@@ -3,8 +3,15 @@ host = "127.0.0.1"
 port = 8000
 
 [proxy]
-# http-echo-server
 scheme = "http"
-host = "localhost:3000"
+x_forwarded_for = true
+x_forwarded_proto = true
 
+  [[proxy.hosts]]
+  path = "/"
+  host = "localhost:3000"
+
+  [[proxy.hosts]]
+  path = "/test"
+  host = "localhost:4000"
 

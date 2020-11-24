@@ -1,44 +1,64 @@
 use hyper::{Body, Client, HeaderMap, Request, Response};
 use hyper_tls::HttpsConnector;
 use lazy_static::lazy_static;
-use log::debug;
+use log::{debug, error, info};
 
-use crate::conf::ProxyConf;
-use crate::error::ServerError;
+use crate::conf::{ProxyConf, ProxyHost};
+use crate::error::ProxyError;
 
 pub struct ReverseProxy {
     pub client: Client<HttpsConnector<hyper::client::HttpConnector>>,
     pub conf: ProxyConf,
 }
 
-//TODO: add x-forwarded-for, x-forwarded-proto
 impl ReverseProxy {
-    pub async fn handle(&self, mut req: Request<Body>) -> Result<Response<Body>, ServerError> {
-        //TODO: enable logs from config file.
-        debug!("{:?}", req);
+    pub async fn handle(&self, mut req: Request<Body>) -> Result<Response<Body>, ProxyError> {
+        *req.headers_mut() = build_headers(req.headers_mut());
+        *req.uri_mut() = match req.uri().path_and_query() {
+            Some(path) => {
+                let scheme = &*self.conf.scheme;
+                let host = build_host(path.as_str(), &self.conf.hosts)?;
 
-        *req.headers_mut() = remove_hop_headers(req.headers_mut());
+                hyper::Uri::builder()
+                    .scheme(scheme)
+                    .authority(host.as_str())
+                    .path_and_query(path.clone())
+                    .build()
+                    .map_err(|err| ProxyError::UriError(format!("{}", err)))?
+            }
+            None => return Err(ProxyError::UriError(format!("Path cannot be empty."))),
+        };
 
-        let mut builder = hyper::Uri::builder()
-            .scheme(&*self.conf.scheme)
-            .authority(&*self.conf.host);
-
-        if let Some(pq) = req.uri().path_and_query() {
-            builder = builder.path_and_query(pq.clone());
-        }
-
-        *req.uri_mut() = builder.build()?;
-
-        let response = self.client.request(req).await?;
-        debug!("{:?}", response);
+        let response = self
+            .client
+            .request(req)
+            .await
+            .map_err(|err| ProxyError::ClientError(format!("{}", err)))?;
 
         Ok(response)
     }
 }
 
-// fn user_header_of(req_heders: &mut HeaderMap) {
-//     req_heders.append("x-real-name", "blah blah".parse().unwrap());
-// }
+fn build_host(path: &str, hosts: &Vec<ProxyHost>) -> Result<String, ProxyError> {
+    for conf in hosts.iter() {
+        // FIXME replace regex match.
+        // This implementation is for test purposes.
+        if conf.path.starts_with(path) {
+            return Ok(conf.host.clone());
+        }
+    }
+
+    Err(ProxyError::UnknownPath(format!(
+        "Cannot find a valid proxy path for '{}'",
+        path
+    )))
+}
+
+fn build_headers(req_headers: &mut HeaderMap) -> HeaderMap {
+    // TODO: add x-forwarded-for, x-forwarded-proto
+    // TODO: user header (eg. x-real-name).
+    remove_hop_headers(req_headers)
+}
 
 /// Returns a clone of the headers without the [hop-by-hop headers].
 /// [hop-by-hop headers]: http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
@@ -53,6 +73,7 @@ fn remove_hop_headers(headers: &mut HeaderMap) -> HeaderMap {
     result
 }
 
+// REVIEW, maybe could be another way.
 /// Checks for hop header.
 fn is_hop_header(name: &str) -> bool {
     use unicase::Ascii;

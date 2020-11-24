@@ -16,6 +16,16 @@ pub struct ServerConf {
 #[derive(Debug, Deserialize)]
 pub struct ProxyConf {
     pub scheme: String,
+
+    pub x_forwarded_for: bool,
+    pub x_forwarded_proto: bool,
+
+    pub hosts: Vec<ProxyHost>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ProxyHost {
+    pub path: String,
     pub host: String,
 }
 
@@ -26,7 +36,7 @@ impl Conf {
         let mut settings = Config::new();
 
         // Start off by merging in the "default" configuration file.
-        // TODO: override feefault file (eg. command line argument).
+        // TODO: override default file (eg. command line argument).
         settings.merge(File::with_name("config/default"))?;
 
         // You can deserialize (and thus freeze) the entire configuration as

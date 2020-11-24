@@ -3,11 +3,26 @@ pub enum ServerError {
     ConfigError(config::ConfigError),
     AddrParseError(String),
     Log4rsError(log4rs::Error),
-    Hyper(hyper::Error),
-    HyperHttp(hyper::http::Error),
+    UnknownError(String),
 }
 
+#[derive(Debug)]
+pub enum ProxyError {
+    UriError(String),
+    UnknownPath(String),
+    ClientError(String),
+}
+
+impl std::error::Error for ServerError {}
+impl std::error::Error for ProxyError {}
+
 impl std::fmt::Display for ServerError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmt, "{:?}", self)
+    }
+}
+
+impl std::fmt::Display for ProxyError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(fmt, "{:?}", self)
     }
@@ -32,17 +47,3 @@ impl From<std::net::AddrParseError> for ServerError {
         )
     }
 }
-
-impl From<hyper::Error> for ServerError {
-    fn from(e: hyper::Error) -> Self {
-        ServerError::Hyper(e)
-    }
-}
-
-impl From<hyper::http::Error> for ServerError {
-    fn from(e: hyper::http::Error) -> Self {
-        ServerError::HyperHttp(e)
-    }
-}
-
-impl std::error::Error for ServerError {}
