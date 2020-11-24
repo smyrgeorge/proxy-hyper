@@ -1,7 +1,6 @@
 use hyper::{Body, Client, HeaderMap, Request, Response};
 use hyper_tls::HttpsConnector;
 use lazy_static::lazy_static;
-use log::{debug, error, info};
 
 use crate::conf::{ProxyConf, ProxyHost};
 use crate::error::ProxyError;

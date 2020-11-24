@@ -32,22 +32,21 @@ pub struct ProxyHost {
 // Implementation found here:
 // https://github.com/mehcode/config-rs/tree/master/examples/hierarchical-env
 impl Conf {
-    pub fn new() -> Result<Self, config::ConfigError> {
+    pub fn new(config_file: &str) -> Result<Self, config::ConfigError> {
         let mut settings = Config::new();
 
         // Start off by merging in the "default" configuration file.
-        // TODO: override default file (eg. command line argument).
-        settings.merge(File::with_name("config/default"))?;
+        settings.merge(File::with_name(config_file))?;
 
         // You can deserialize (and thus freeze) the entire configuration as
         settings.try_into()
     }
 
-    pub fn server_addr(&self) -> Result<SocketAddr, AddrParseError> {
-        Ok(format!("{}:{}", self.server.host, self.server.port).parse()?)
+    pub fn log(log_file: &str) -> Result<(), log4rs::Error> {
+        Ok(log4rs::init_file(log_file, Default::default())?)
     }
 
-    pub fn log(&self) -> Result<(), log4rs::Error> {
-        Ok(log4rs::init_file("config/log4rs.yml", Default::default())?)
+    pub fn server_addr(&self) -> Result<SocketAddr, AddrParseError> {
+        Ok(format!("{}:{}", self.server.host, self.server.port).parse()?)
     }
 }

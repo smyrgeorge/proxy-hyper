@@ -4,11 +4,10 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-use error::ProxyError;
-use hyper::StatusCode;
+use clap::Clap;
 use hyper::{
     service::{make_service_fn, service_fn},
-    Body, Client, Response, Server,
+    Body, Client, Response, Server, StatusCode,
 };
 use hyper_tls::HttpsConnector;
 use log::{debug, error, info};
@@ -19,6 +18,7 @@ use conf::Conf;
 
 mod error;
 use error::{
+    ProxyError,
     ProxyError::{ClientError, UnknownPath, UriError},
     ServerError,
 };
@@ -30,11 +30,29 @@ use proxy::ReverseProxy;
 // TODO: documentation
 // TODO: tests
 
+/// Command line arguments.
+#[derive(Clap, Debug)]
+#[clap(version = "0.1", author = "George S. <smyrgeorge@gmail.com>")]
+struct Opts {
+    /// Sets a custom config file.
+    #[clap(short, long, default_value = "config/default.toml")]
+    config_file: String,
+
+    /// Sets a custom log config file.
+    #[clap(short, long, default_value = "config/log4rs.yml")]
+    log_file: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), ServerError> {
+    // Parse command line arguments.
+    let opts: Opts = Opts::parse();
+
+    //Load config, and log4rs (logger).
+    Conf::log(&opts.log_file)?;
+
     // Load config, and log4rs (logger).
-    let conf = Conf::new()?;
-    let _log = conf.log();
+    let conf = Conf::new(&opts.config_file)?;
     debug!("{:?}", conf);
 
     // Build ReverseProxy.
@@ -71,6 +89,13 @@ async fn main() -> Result<(), ServerError> {
     Ok(())
 }
 
+/// Build ReverseProxy.
+fn build_reverse_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {
+    let https = HttpsConnector::new();
+    let client = Client::builder().build(https);
+    Arc::new(ReverseProxy { client, conf })
+}
+
 /// Translate ServerError(s) to rest rsponse.
 /// For example a malformed request uri could possibly trigger a panic.
 fn build_error_response(err: ProxyError) -> Result<Response<Body>, ServerError> {
@@ -85,11 +110,4 @@ fn build_error_response(err: ProxyError) -> Result<Response<Body>, ServerError> 
         .status(status)
         .body(Body::from(body))
         .map_err(|err| ServerError::UnknownError(format!("{}", err)))
-}
-
-/// Build ReverseProxy.
-fn build_reverse_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {
-    let https = HttpsConnector::new();
-    let client = Client::builder().build(https);
-    Arc::new(ReverseProxy { client, conf })
 }

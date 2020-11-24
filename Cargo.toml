@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 config = "0.10"
+clap = "3.0.0-beta.2"
 hyper = "0.13"
 hyper-tls = "0.4.3"
 log = "0.4"
