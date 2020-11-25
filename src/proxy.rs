@@ -6,6 +6,7 @@ use lazy_static::lazy_static;
 use crate::conf::{AuthConf, ProxyConf, ProxyHost};
 use crate::error::ProxyError;
 use crate::jwt;
+use crate::jwt::Claims;
 
 pub struct ReverseProxy {
     pub client: Client<HttpsConnector<HttpConnector>>,
@@ -14,8 +15,13 @@ pub struct ReverseProxy {
 
 impl ReverseProxy {
     pub async fn handle(&self, mut req: Request<Body>) -> Result<Response<Body>, ProxyError> {
+        let req_headers = req.headers_mut();
+
+        // If auth is enabled, verify user.
+        let claims = check_auth(&self.conf.auth, req_headers)?;
+
         // Build headers.
-        *req.headers_mut() = build_headers(&self.conf.auth, req.headers_mut())?;
+        *req.headers_mut() = build_headers(req_headers)?;
 
         // Build remote uri.
         *req.uri_mut() = match req.uri().path_and_query() {
@@ -44,12 +50,22 @@ impl ReverseProxy {
     }
 }
 
+/// Check if request is authenticated.
+fn check_auth(conf: &AuthConf, req_headers: &HeaderMap) -> Result<Option<Claims>, ProxyError> {
+    let claims = if conf.auth {
+        let claims = jwt::check_auth(&conf, req_headers)?;
+        Some(claims)
+    } else {
+        None
+    };
+
+    Ok(claims)
+}
+
 /// Builds remote host.
 fn build_host(path: &str, hosts: &Vec<ProxyHost>) -> Result<String, ProxyError> {
     for conf in hosts.iter() {
-        // FIXME replace regex match.
-        // This implementation is for test purposes.
-        if conf.path.starts_with(path) {
+        if path.starts_with(&conf.path) {
             return Ok(conf.host.clone());
         }
     }
@@ -63,15 +79,8 @@ fn build_host(path: &str, hosts: &Vec<ProxyHost>) -> Result<String, ProxyError> 
 /// Removes headers.
 /// If auth is enabled, tries to verify the provided token
 /// and construct a custom user header (eg. x-real-name).
-fn build_headers(conf: &AuthConf, req_headers: &HeaderMap) -> Result<HeaderMap, ProxyError> {
+fn build_headers(req_headers: &HeaderMap) -> Result<HeaderMap, ProxyError> {
     let headers = remove_hop_headers(req_headers);
-
-    if conf.auth {
-        let jwt = jwt::extract_bearer_token(req_headers)?;
-        jwt::verify(conf, jwt)?;
-        // TODO: add user header
-    }
-
     Ok(headers)
 }
 

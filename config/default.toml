@@ -11,7 +11,7 @@ scheme = "http"
   # RSA256
 
   # Do not commit tokens/keys in the code.
-  # IMPORTANT: jwt tokens ar credentials.
+  # IMPORTANT: jwt tokens are credentials.
   # NOTE: spaces and new line characters will be trimmed.
   # For local development please use config/local.toml.
   alg = "RS256"
@@ -23,7 +23,3 @@ scheme = "http"
   [[proxy.hosts]]
   path = "/"
   host = "localhost:3000"
-
-  [[proxy.hosts]]
-  path = "/test"
-  host = "localhost:8080"
