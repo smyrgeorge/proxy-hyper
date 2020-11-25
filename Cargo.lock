@@ -934,6 +934,7 @@ dependencies = [
 name = "proxy-hyper"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "clap",
  "config",
  "hyper",
@@ -944,6 +945,7 @@ dependencies = [
  "log4rs",
  "serde 1.0.117",
  "serde_derive",
+ "serde_json",
  "tokio",
  "unicase",
 ]

@@ -21,7 +21,7 @@ impl ReverseProxy {
         let claims = check_auth(&self.conf.auth, req_headers)?;
 
         // Build headers.
-        *req.headers_mut() = build_headers(req_headers)?;
+        *req.headers_mut() = build_headers(req_headers, claims)?;
 
         // Build remote uri.
         *req.uri_mut() = match req.uri().path_and_query() {
@@ -77,10 +77,16 @@ fn build_host(path: &str, hosts: &Vec<ProxyHost>) -> Result<String, ProxyError> 
 }
 
 /// Removes headers.
-/// If auth is enabled, tries to verify the provided token
-/// and construct a custom user header (eg. x-real-name).
-fn build_headers(req_headers: &HeaderMap) -> Result<HeaderMap, ProxyError> {
-    let headers = remove_hop_headers(req_headers);
+/// If auth is enabled, tries to construct a custom user header (eg. x-real-name).
+fn build_headers(req_headers: &HeaderMap, claims: Option<Claims>) -> Result<HeaderMap, ProxyError> {
+    let mut headers = remove_hop_headers(req_headers);
+
+    // if request contains auth info, add custom header to proxied request.
+    if let Some(claims) = claims {
+        let user_token = claims.to_user_token()?;
+        headers.append("x-real-name", user_token.parse()?);
+    };
+
     Ok(headers)
 }
 

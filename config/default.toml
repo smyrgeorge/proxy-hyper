@@ -22,4 +22,4 @@ scheme = "http"
 
   [[proxy.hosts]]
   path = "/"
-  host = "localhost:3000"
+  host = "localhost:8080"

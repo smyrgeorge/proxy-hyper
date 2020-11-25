@@ -5,10 +5,8 @@ extern crate serde;
 extern crate serde_derive;
 
 use clap::Clap;
-use hyper::{
-    service::{make_service_fn, service_fn},
-    Body, Client, Response, Server, StatusCode,
-};
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Client, Response, Server, StatusCode};
 use hyper_tls::HttpsConnector;
 use log::{debug, error, info};
 use std::sync::Arc;
@@ -22,8 +20,8 @@ mod utils;
 mod error;
 use error::{
     ProxyError::{
-        self, AuthCannotParseHeader, AuthMissingHeader, AuthTokenError, ClientError, UnknownPath,
-        UriError,
+        self, AuthCannotCreateHeader, AuthCannotParseHeader, AuthMissingHeader, AuthTokenError,
+        ClientError, UnknownPath, UriError,
     },
     ServerError,
 };
@@ -34,7 +32,7 @@ use proxy::ReverseProxy;
 // TODO: x-forwarded-for (and proto) headers.
 // TODO: documentation
 // TODO: tests
-// TODO: logging
+// TODO: log request/response
 
 /// Command line arguments.
 #[derive(Clap, Debug)]
@@ -117,6 +115,7 @@ fn handle_error(err: ProxyError) -> Result<Response<Body>, ServerError> {
         AuthMissingHeader(msg) => (StatusCode::UNAUTHORIZED, msg),
         AuthCannotParseHeader(msg) => (StatusCode::UNAUTHORIZED, msg),
         AuthTokenError(err) => (StatusCode::UNAUTHORIZED, format!("{:?}", err)),
+        AuthCannotCreateHeader(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
     };
 
     Response::builder()

@@ -14,6 +14,7 @@ pub enum ProxyError {
 
     AuthMissingHeader(String),
     AuthCannotParseHeader(String),
+    AuthCannotCreateHeader(String),
     AuthTokenError(jsonwebtoken::errors::Error),
 }
 
@@ -61,5 +62,17 @@ impl From<hyper::header::ToStrError> for ProxyError {
 impl From<jsonwebtoken::errors::Error> for ProxyError {
     fn from(v: jsonwebtoken::errors::Error) -> Self {
         ProxyError::AuthTokenError(v)
+    }
+}
+
+impl From<hyper::header::InvalidHeaderValue> for ProxyError {
+    fn from(_: hyper::header::InvalidHeaderValue) -> Self {
+        ProxyError::AuthCannotCreateHeader("Cannot create custom auth header".into())
+    }
+}
+
+impl From<serde_json::Error> for ProxyError {
+    fn from(_: serde_json::Error) -> Self {
+        ProxyError::AuthCannotCreateHeader("Cannot create custom header".into())
     }
 }
