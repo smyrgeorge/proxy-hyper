@@ -11,6 +11,10 @@ pub enum ProxyError {
     UriError(String),
     UnknownPath(String),
     ClientError(String),
+
+    AuthMissingHeader(String),
+    AuthCannotParseHeader(String),
+    AuthTokenError(jsonwebtoken::errors::Error),
 }
 
 impl std::error::Error for ServerError {}
@@ -45,5 +49,17 @@ impl From<std::net::AddrParseError> for ServerError {
         ServerError::AddrParseError(
             "Server host/port is malformed. Please check your configuration file.".into(),
         )
+    }
+}
+
+impl From<hyper::header::ToStrError> for ProxyError {
+    fn from(_: hyper::header::ToStrError) -> Self {
+        ProxyError::AuthCannotParseHeader("Cannot parse authorization header.".into())
+    }
+}
+
+impl From<jsonwebtoken::errors::Error> for ProxyError {
+    fn from(v: jsonwebtoken::errors::Error) -> Self {
+        ProxyError::AuthTokenError(v)
     }
 }

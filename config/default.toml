@@ -4,8 +4,21 @@ port = 8000
 
 [proxy]
 scheme = "http"
-x_forwarded_for = true
-x_forwarded_proto = true
+
+  [proxy.auth]
+  # Enable/Disable auth.
+  auth = true
+  # RSA256
+
+  # Do not commit tokens/keys in the code.
+  # IMPORTANT: jwt tokens ar credentials.
+  # NOTE: spaces and new line characters will be trimmed.
+  # For local development please use config/local.toml.
+  alg = "RS256"
+  rsa_modulus ='''
+  PLACE_MODULUS_HERE
+  '''
+  rsa_exponent = "PLACE_EXPONENT_HERE"
 
   [[proxy.hosts]]
   path = "/"
@@ -13,5 +26,4 @@ x_forwarded_proto = true
 
   [[proxy.hosts]]
   path = "/test"
-  host = "localhost:4000"
-
+  host = "localhost:8080"

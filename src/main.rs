@@ -16,19 +16,25 @@ use std::sync::Arc;
 mod conf;
 use conf::Conf;
 
+mod jwt;
+mod utils;
+
 mod error;
 use error::{
-    ProxyError,
-    ProxyError::{ClientError, UnknownPath, UriError},
+    ProxyError::{
+        self, AuthCannotParseHeader, AuthMissingHeader, AuthTokenError, ClientError, UnknownPath,
+        UriError,
+    },
     ServerError,
 };
 
 mod proxy;
 use proxy::ReverseProxy;
 
-// TODO: keycloak
+// TODO: x-forwarded-for (and proto) headers.
 // TODO: documentation
 // TODO: tests
+// TODO: logging
 
 /// Command line arguments.
 #[derive(Clap, Debug)]
@@ -37,6 +43,10 @@ struct Opts {
     /// Sets a custom config file.
     #[clap(short, long, default_value = "config/default.toml")]
     config_file: String,
+
+    /// Sets a private config file (overrides config file).
+    #[clap(long, default_value = "config/private.toml")]
+    private_config_file: String,
 
     /// Sets a custom log config file.
     #[clap(short, long, default_value = "config/log4rs.yml")]
@@ -52,12 +62,12 @@ async fn main() -> Result<(), ServerError> {
     Conf::log(&opts.log_file)?;
 
     // Load config.
-    let conf = Conf::new(&opts.config_file)?;
+    let conf = Conf::new(&opts.config_file, &opts.private_config_file)?;
     debug!("{:?}", conf);
 
     // Build ReverseProxy.
     let addr = conf.server_addr()?;
-    let proxy: Arc<ReverseProxy> = build_reverse_proxy(conf.proxy);
+    let proxy: Arc<ReverseProxy> = build_proxy(conf.proxy);
 
     let make_svc = make_service_fn(move |_| {
         let proxy = proxy.clone();
@@ -70,7 +80,7 @@ async fn main() -> Result<(), ServerError> {
                     // Handle errors here (eg. Connection refused).
                     match proxy.handle(req).await {
                         Ok(resp) => Ok(resp),
-                        Err(err) => build_error_response(err),
+                        Err(err) => handle_error(err),
                     }
                 }
             }))
@@ -90,7 +100,7 @@ async fn main() -> Result<(), ServerError> {
 }
 
 /// Build ReverseProxy.
-fn build_reverse_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {
+fn build_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {
     let https = HttpsConnector::new();
     let client = Client::builder().build(https);
     Arc::new(ReverseProxy { client, conf })
@@ -98,12 +108,15 @@ fn build_reverse_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {
 
 /// Translate ServerError(s) to rest rsponse.
 /// For example a malformed request uri could possibly trigger a panic.
-fn build_error_response(err: ProxyError) -> Result<Response<Body>, ServerError> {
+fn handle_error(err: ProxyError) -> Result<Response<Body>, ServerError> {
     let (status, body) = match err {
         // REVIEW: think again about the follwing statuses.
         UriError(msg) => (StatusCode::BAD_REQUEST, msg),
         UnknownPath(msg) => (StatusCode::BAD_REQUEST, msg),
         ClientError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+        AuthMissingHeader(msg) => (StatusCode::UNAUTHORIZED, msg),
+        AuthCannotParseHeader(msg) => (StatusCode::UNAUTHORIZED, msg),
+        AuthTokenError(err) => (StatusCode::UNAUTHORIZED, format!("{:?}", err)),
     };
 
     Response::builder()
