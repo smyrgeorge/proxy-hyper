@@ -18,13 +18,9 @@ mod jwt;
 mod utils;
 
 mod error;
-use error::{
-    ProxyError::{
-        self, AuthCannotCreateHeader, AuthCannotParseHeader, AuthMissingHeader, AuthTokenError,
-        ClientError, UnknownPath, UriError,
-    },
-    ServerError,
-};
+use error::ProxyError;
+use error::ProxyError::*;
+use error::ServerError;
 
 mod proxy;
 use proxy::ReverseProxy;
