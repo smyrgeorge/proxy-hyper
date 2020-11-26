@@ -97,10 +97,18 @@ fn verify(conf: &AuthConf, token: String) -> Result<TokenData<Claims>, Error> {
 
 /// Extracts a jwt token from 'Authentication' header.
 fn extract_bearer_token(req_headers: &HeaderMap) -> Result<String, ProxyError> {
-    // FIXME: HeaderName.eq is case insensitive?.
-    let auth_header = req_headers.iter().find(|h| h.0.eq("Authorization"));
+    // Find Authorization header.
+    let auth_header = req_headers
+        .iter()
+        .find(|h| h.0.to_string().to_lowercase().eq("authorization"));
+
+    // Extract bearer token from the header.
     let bearer = match auth_header {
-        Some(h) => h.1.to_str()?.trim_start_matches("Bearer "),
+        Some(h) => {
+            h.1.to_str()?
+                .trim_start_matches("Bearer ")
+                .trim_start_matches("bearer ")
+        }
         None => {
             return Err(ProxyError::AuthMissingHeader(
                 "Authorization header is absent.".to_string(),

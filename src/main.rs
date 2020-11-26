@@ -104,9 +104,8 @@ fn build_proxy(conf: conf::ProxyConf) -> Arc<ReverseProxy> {
 /// For example a malformed request uri could possibly trigger a panic.
 fn handle_error(err: ProxyError) -> Result<Response<Body>, ServerError> {
     let (status, body) = match err {
-        // REVIEW: think again about the follwing statuses.
         UriError(msg) => (StatusCode::BAD_REQUEST, msg),
-        UnknownPath(msg) => (StatusCode::BAD_REQUEST, msg),
+        UnknownPath(msg) => (StatusCode::NOT_FOUND, msg),
         ClientError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         AuthMissingHeader(msg) => (StatusCode::UNAUTHORIZED, msg),
         AuthCannotParseHeader(msg) => (StatusCode::UNAUTHORIZED, msg),

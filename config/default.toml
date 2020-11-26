@@ -8,7 +8,6 @@ scheme = "http"
   [proxy.auth]
   # Enable/Disable auth.
   auth = true
-  # RSA256
 
   # Do not commit tokens/keys in the code.
   # IMPORTANT: jwt tokens are credentials.
@@ -22,4 +21,4 @@ scheme = "http"
 
   [[proxy.hosts]]
   path = "/"
-  host = "localhost:8080"
+  host = "localhost:3000"
