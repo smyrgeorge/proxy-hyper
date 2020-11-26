@@ -6,7 +6,7 @@ extern crate serde_derive;
 
 use clap::Clap;
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Client, Response, Server, StatusCode};
+use hyper::{Body, Client, Method, Response, Server, StatusCode, Uri};
 use hyper_tls::HttpsConnector;
 use log::{debug, error, info};
 use std::sync::Arc;
@@ -26,9 +26,7 @@ mod proxy;
 use proxy::ReverseProxy;
 
 // TODO: x-forwarded-for (and proto) headers.
-// TODO: documentation
 // TODO: tests
-// TODO: log request/response
 
 /// Command line arguments.
 #[derive(Clap, Debug)]
@@ -71,11 +69,21 @@ async fn main() -> Result<(), ServerError> {
                 let proxy = proxy.clone();
 
                 async move {
+                    // Keep request uri and method for logging.
+                    let req_uri = req.uri().clone();
+                    let req_method = req.method().clone();
+
                     // Handle errors here (eg. Connection refused).
-                    match proxy.handle(req).await {
+                    let resp = match proxy.handle(req).await {
                         Ok(resp) => Ok(resp),
                         Err(err) => handle_error(err),
-                    }
+                    };
+
+                    // Log resonses here.
+                    log(req_uri, req_method, &resp);
+
+                    // Return result.
+                    resp
                 }
             }))
         }
@@ -117,4 +125,18 @@ fn handle_error(err: ProxyError) -> Result<Response<Body>, ServerError> {
         .status(status)
         .body(Body::from(body))
         .map_err(|err| ServerError::UnknownError(format!("{}", err)))
+}
+
+/// Log responses.
+fn log(req_uri: Uri, req_method: Method, resp: &Result<Response<Body>, ServerError>) {
+    match resp {
+        Ok(resp) => {
+            if resp.status().is_client_error() || resp.status().is_server_error() {
+                error!("[{}] {} :: {}", req_method, req_uri, resp.status());
+            } else {
+                info!("[{}] {} :: {}", req_method, req_uri, resp.status());
+            }
+        }
+        Err(err) => error!("[{}] {} :: {}", req_method, req_uri, err),
+    };
 }

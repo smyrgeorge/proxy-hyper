@@ -12,7 +12,7 @@ appenders:
     encoder:
       # documentation can be found here:
       # https://github.com/estk/log4rs/blob/master/src/encode/pattern/mod.rs
-      pattern: "{d}{h([{l}]):>8.15} [{T}] {M}\\({L}\\) - {m}{n}"
+      pattern: "{d}{h([{l}]):>8.15} [{T}] - {m}{n}"
 
 # Set the default logging level to "info" and attach the "stdout" appender to the root
 root:
