@@ -25,9 +25,6 @@ use error::ServerError;
 mod proxy;
 use proxy::ReverseProxy;
 
-// TODO: x-forwarded-for (and proto) headers.
-// TODO: tests
-
 /// Command line arguments.
 #[derive(Clap, Debug)]
 #[clap(version = "0.1", author = "George S. <smyrgeorge@gmail.com>")]
