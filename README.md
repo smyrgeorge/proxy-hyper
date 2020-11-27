@@ -57,7 +57,7 @@ OPTIONS:
 
 ```
 
-## Configuration
+## Configuration :: default.conf
 ``` toml
 [server]
 host = "127.0.0.1"
@@ -84,3 +84,30 @@ scheme = "http"
   path = "/"
   host = "localhost:3000"
 ```
+
+## Configuration :: log4rs.yml
+
+``` yaml
+# Sample file can be found here:
+# https://docs.rs/log4rs/0.13.0/log4rs/#configuration-via-a-yaml-file
+
+
+# Scan this file for changes every 30 seconds
+refresh_rate: 30 seconds
+
+appenders:
+  # An appender named "stdout" that writes to stdout
+  stdout:
+    kind: console
+    encoder:
+      # documentation can be found here:
+      # https://github.com/estk/log4rs/blob/master/src/encode/pattern/mod.rs
+      pattern: "{d}{h([{l}]):>8.15} [{T}] - {m}{n}"
+
+# Set the default logging level to "info" and attach the "stdout" appender to the root
+root:
+  level: info
+  appenders:
+    - stdout
+```
+
