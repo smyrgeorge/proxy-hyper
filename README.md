@@ -75,6 +75,9 @@ scheme = "http"
   # NOTE: spaces and new line characters will be trimmed.
   # For local development please use config/local.toml.
   alg = "RS256"
+  
+  # In order to extract modulus and exponent from the RSA public key,
+  # you can use a small Java program (located in scripts folder).
   rsa_modulus ='''
   PLACE_MODULUS_HERE
   '''
@@ -84,6 +87,7 @@ scheme = "http"
   path = "/"
   host = "localhost:3000"
 ```
+
 
 ## Configuration :: log4rs.yml
 
