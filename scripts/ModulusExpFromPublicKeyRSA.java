@@ -27,7 +27,7 @@ public class ModulusExpFromPublicKeyRSA {
       byte[] keyBytes = Base64.getDecoder().decode(publicKey.getBytes("UTF-8"));
       X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
       PublicKey fileGeneratedPublicKey = keyFactory.generatePublic(spec);
-      RSAPublicKey rsaPub = (RSAPublicKey)(fileGeneratedPublicKey);
+      RSAPublicKey rsaPub = (RSAPublicKey) (fileGeneratedPublicKey);
 
       BigInteger pkModulus = rsaPub.getModulus();
       BigInteger pkExponent = rsaPub.getPublicExponent();
@@ -35,16 +35,13 @@ public class ModulusExpFromPublicKeyRSA {
       System.out.println("pkModulus: " + pkModulus);
       System.out.println("pkExponent: " + pkExponent);
 
-      String nModulus =
-          Base64.getUrlEncoder().encodeToString(pkModulus.toByteArray());
-      String eExponent =
-          Base64.getUrlEncoder().encodeToString(pkExponent.toByteArray());
+      String nModulus = Base64.getUrlEncoder().encodeToString(pkModulus.toByteArray());
+      String eExponent = Base64.getUrlEncoder().encodeToString(pkExponent.toByteArray());
 
       System.out.println("n Modulus for RSA Algorithm: " + nModulus);
       System.out.println("e Exponent for RSA Algorithm: " + eExponent);
 
-    } catch (NoSuchAlgorithmException | UnsupportedEncodingException |
-             InvalidKeySpecException e) {
+    } catch (NoSuchAlgorithmException | UnsupportedEncodingException | InvalidKeySpecException e) {
       System.out.println(e.getMessage());
       e.printStackTrace();
     }
