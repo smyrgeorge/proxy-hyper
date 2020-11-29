@@ -1,3 +1,6 @@
+## Status
+![Build](https://github.com/smyrgeorge/proxy-hyper/workflows/Build/badge.svg)
+
 ## Project goals
 The goal of this project is to create a *simple reverse proxy* using the Rust programming language. Build on top of [hyper](https://hyper.rs/) (*hyper is a fast and correct HTTP implementation written in Rust*).
 
