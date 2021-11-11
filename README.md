@@ -1,23 +1,29 @@
 ## Status
+
 ![Build](https://github.com/smyrgeorge/proxy-hyper/workflows/Build/badge.svg)
 
 ## Project goals
-The goal of this project is to create a *simple reverse proxy* using the Rust programming language. Build on top of [hyper](https://hyper.rs/) (*hyper is a fast and correct HTTP implementation written in Rust*).
+
+The goal of this project is to create a _simple reverse proxy_ using the Rust programming language. Build on top of [hyper](https://hyper.rs/) (_hyper is a fast and correct HTTP implementation written in Rust_).
 
 ## Features
+
 - Fully configurable reverse proxy (see usage below).
-- Supports *Bearer Authorization*. If authentication is enabled, through the configuration file, the proxy validates *jwt* token. Then creates a new HTTP header *"x-real-name"*, which contains the user identity. The new header is encoded in base64.
+- Supports _Bearer Authorization_. If authentication is enabled, through the configuration file, the proxy validates _jwt_ token. Then creates a new HTTP header _"x-real-name"_, which contains the user identity. The new header is encoded in base64.
 - Logging using [log4rs](https://docs.rs/log4rs/0.13.0/log4rs/).
 
 ## Pending
-- [ ] Add headers *"[x-forwarded-proto](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto)"* and *"[x-forwarded-for"](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For)*.
+
+- [ ] Use tracing.
+- [ ] Repackage several parts of the code, using 'mod.rs'.
+- [ ] Add headers _"[x-forwarded-proto](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto)"_ and _"[x-forwarded-for"](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For)_.
 - [ ] Better path matching.
 - [ ] Test several critical parts.
 - [ ] Performance test.
 
 ## Build
 
-``` sh
+```sh
 # build release
 cargo build --release
 
@@ -27,14 +33,14 @@ cargo build
 
 ## Run
 
-``` sh
+```sh
 # run release
 caro run --release
 ```
 
 ## Command line options
 
-``` 
+```
 ~/ » ./proxy-hyper --help
 
 proxy-hyper 0.1
@@ -61,7 +67,8 @@ OPTIONS:
 ```
 
 ## Configuration :: default.conf
-``` toml
+
+```toml
 [server]
 host = "127.0.0.1"
 port = 8000
@@ -78,7 +85,7 @@ scheme = "http"
   # NOTE: spaces and new line characters will be trimmed.
   # For local development please use config/local.toml.
   alg = "RS256"
-  
+
   # In order to extract modulus and exponent from the RSA public key,
   # you can use a small Java program (located in scripts folder).
   rsa_modulus ='''
@@ -91,13 +98,11 @@ scheme = "http"
   host = "localhost:3000"
 ```
 
-
 ## Configuration :: log4rs.yml
 
-``` yaml
+```yaml
 # Sample file can be found here:
 # https://docs.rs/log4rs/0.13.0/log4rs/#configuration-via-a-yaml-file
-
 
 # Scan this file for changes every 30 seconds
 refresh_rate: 30 seconds
@@ -117,4 +122,3 @@ root:
   appenders:
     - stdout
 ```
-
