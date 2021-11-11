@@ -1,4 +1,4 @@
-use crate::utils::strip_whitespaces;
+use crate::{error::ServerError, utils::strip_whitespaces};
 use config::{Config, File};
 use std::net::{AddrParseError, SocketAddr};
 
@@ -34,6 +34,8 @@ pub struct AuthConf {
 pub struct ProxyHost {
     pub path: String,
     pub host: String,
+    // Determine if auth is enabled for this host.
+    pub auth: Option<bool>,
 }
 
 // Implementation found here:
@@ -58,8 +60,9 @@ impl Conf {
     }
 
     /// Start the logger (log4rs).
-    pub fn log(log_file: &str) -> Result<(), log4rs::Error> {
-        Ok(log4rs::init_file(log_file, Default::default())?)
+    pub fn log(log_file: &str) -> Result<(), ServerError> {
+        Ok(log4rs::init_file(log_file, Default::default())
+            .map_err(|_| ServerError::LogInitError)?)
     }
 
     /// Build server address.

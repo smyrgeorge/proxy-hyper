@@ -2,7 +2,7 @@
 pub enum ServerError {
     ConfigError(config::ConfigError),
     AddrParseError(String),
-    Log4rsError(log4rs::Error),
+    LogInitError,
     UnknownError(String),
 }
 
@@ -33,11 +33,11 @@ impl std::fmt::Display for ProxyError {
     }
 }
 
-impl From<log4rs::Error> for ServerError {
-    fn from(v: log4rs::Error) -> Self {
-        ServerError::Log4rsError(v)
-    }
-}
+// impl From<log::SetLoggerError> for ServerError {
+//     fn from(v: log::SetLoggerError) -> Self {
+//         ServerError::LogError(v)
+//     }
+// }
 
 impl From<config::ConfigError> for ServerError {
     fn from(err: config::ConfigError) -> Self {

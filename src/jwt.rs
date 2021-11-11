@@ -2,10 +2,8 @@ use std::str::FromStr;
 
 use hyper::HeaderMap;
 use jsonwebtoken::decode;
-use jsonwebtoken::errors::Error;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
-use jsonwebtoken::TokenData;
 use jsonwebtoken::Validation;
 
 use crate::conf::AuthConf;
@@ -22,11 +20,15 @@ pub struct Claims {
 
     pub sub: String,
     pub email_verified: bool,
-    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub preferred_username: String,
-    pub given_name: String,
-    pub family_name: String,
-    pub email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub given_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub family_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
 
     pub realm_access: RealmAccess,
     pub resource_access: ResourceAccess,
@@ -51,14 +53,25 @@ pub struct Account {
 pub struct UserToken {
     uuid: String,
     username: String,
-    email: String,
-    first_name: String,
-    last_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    first_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_name: Option<String>,
     roles: Vec<String>,
 }
 
 impl Claims {
     pub fn to_user_token(&self) -> Result<String, ProxyError> {
+        // Construct roles.
+        let roles = self
+            .realm_access
+            .roles
+            .iter()
+            .map(|r| format!("ROLE_{}", r.to_uppercase()))
+            .collect();
+
         // Create UserToken.
         let user_token = UserToken {
             uuid: self.sub.clone(),
@@ -66,7 +79,7 @@ impl Claims {
             email: self.email.clone(),
             first_name: self.given_name.clone(),
             last_name: self.family_name.clone(),
-            roles: self.realm_access.roles.clone(),
+            roles,
         };
 
         // Serialize to json.
@@ -77,44 +90,49 @@ impl Claims {
     }
 }
 
-/// Checks if request is authenticated.
-pub fn check_auth(conf: &AuthConf, req_headers: &HeaderMap) -> Result<Claims, ProxyError> {
-    let jwt = extract_bearer_token(req_headers)?;
-    let res = verify(conf, jwt)?;
-    Ok(res.claims)
+pub struct JwtValidator<'a> {
+    key: DecodingKey<'a>,
+    alg: Validation,
 }
 
-/// Verify token.
-fn verify(conf: &AuthConf, token: String) -> Result<TokenData<Claims>, Error> {
-    let token = decode::<Claims>(
-        &token,
-        &DecodingKey::from_rsa_components(conf.rsa_modulus.as_str(), conf.rsa_exponent.as_str()),
-        &Validation::new(Algorithm::from_str(&conf.alg)?),
-    )?;
-
-    Ok(token)
-}
-
-/// Extracts a jwt token from 'Authentication' header.
-fn extract_bearer_token(req_headers: &HeaderMap) -> Result<String, ProxyError> {
-    // Find Authorization header.
-    let auth_header = req_headers
-        .iter()
-        .find(|h| h.0.to_string().to_lowercase().eq("authorization"));
-
-    // Extract bearer token from the header.
-    let bearer = match auth_header {
-        Some(h) => {
-            h.1.to_str()?
-                .trim_start_matches("Bearer ")
-                .trim_start_matches("bearer ")
+impl<'a> JwtValidator<'a> {
+    pub fn new(conf: &'a AuthConf) -> Self {
+        Self {
+            key: DecodingKey::from_rsa_components(&conf.rsa_modulus, &conf.rsa_exponent),
+            alg: Validation::new(Algorithm::from_str(&conf.alg).unwrap()),
         }
-        None => {
-            return Err(ProxyError::AuthMissingHeader(
-                "Authorization header is absent.".to_string(),
-            ))
-        }
-    };
+    }
 
-    Ok(bearer.to_string())
+    /// Checks if request is authenticated.
+    pub fn check_auth(&self, req_headers: &HeaderMap) -> Result<Claims, ProxyError> {
+        // Extract header.
+        let jwt = JwtValidator::extract_bearer_token(req_headers)?;
+        // Decote/Validate header.
+        let res = decode::<Claims>(&jwt, &self.key, &self.alg)?;
+        Ok(res.claims)
+    }
+
+    /// Extracts a jwt token from 'Authentication' header.
+    fn extract_bearer_token(req_headers: &HeaderMap) -> Result<String, ProxyError> {
+        // Find Authorization header.
+        let auth_header = req_headers
+            .iter()
+            .find(|h| h.0.to_string().to_lowercase().eq("authorization"));
+
+        // Extract bearer token from the header.
+        let bearer = match auth_header {
+            Some(h) => {
+                h.1.to_str()?
+                    .trim_start_matches("Bearer ")
+                    .trim_start_matches("bearer ")
+            }
+            None => {
+                return Err(ProxyError::AuthMissingHeader(
+                    "Authorization header is absent.".to_string(),
+                ))
+            }
+        };
+
+        Ok(bearer.to_string())
+    }
 }
