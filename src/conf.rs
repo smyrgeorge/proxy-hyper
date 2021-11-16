@@ -61,12 +61,11 @@ impl Conf {
 
     /// Start the logger (log4rs).
     pub fn log(log_file: &str) -> Result<(), ServerError> {
-        Ok(log4rs::init_file(log_file, Default::default())
-            .map_err(|_| ServerError::LogInitError)?)
+        log4rs::init_file(log_file, Default::default()).map_err(|_| ServerError::LogInitError)
     }
 
     /// Build server address.
     pub fn server_addr(&self) -> Result<SocketAddr, AddrParseError> {
-        Ok(format!("{}:{}", self.server.host, self.server.port).parse()?)
+        format!("{}:{}", self.server.host, self.server.port).parse()
     }
 }

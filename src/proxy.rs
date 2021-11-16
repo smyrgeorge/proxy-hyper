@@ -42,14 +42,14 @@ impl<'conf> ReverseProxy<'conf> {
 
                 (proxy_host, uri)
             }
-            None => return Err(ProxyError::UriError(format!("Path cannot be empty."))),
+            None => return Err(ProxyError::UriError("Path cannot be empty.".to_string())),
         };
 
         // Update req uri.
         *req.uri_mut() = uri;
 
         // If auth is enabled, verify user.
-        let claims = self.check_auth(&self.conf.auth, &proxy_host, req.headers_mut())?;
+        let claims = self.check_auth(&self.conf.auth, proxy_host, req.headers_mut())?;
 
         // Build headers.
         *req.headers_mut() = build_headers(req.headers_mut(), claims)?;
@@ -72,11 +72,7 @@ impl<'conf> ReverseProxy<'conf> {
         req_headers: &HeaderMap,
     ) -> Result<Option<Claims>, ProxyError> {
         // Check if auth is enabled.
-        let enabled = match proxy_host.auth {
-            Some(auth) => auth,
-            // Empty value should be converted to True.
-            None => true,
-        } && auth_conf.auth;
+        let enabled = proxy_host.auth.unwrap_or(true) && auth_conf.auth;
 
         // If enabled check auth.
         let claims = if enabled {
